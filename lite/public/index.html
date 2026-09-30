@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Resource Builder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Left: design, add, save & share -->
+  <aside>
+    <h3>Design</h3>
+    <div class="row"><select id="designs"></select><button id="new">New</button></div>
+    <input id="name" placeholder="Design name">
+    <select id="preset"><option value="">Choose a size…</option></select>
+    <div class="row"><input id="w" type="number"> × <input id="h" type="number"> px</div>
+    <label class="row">Background <input id="bg" type="color"></label>
+
+    <h3>Add</h3>
+    <div class="row">
+      <button id="addText">Text</button>
+      <button id="addRect">Shape</button>
+      <label class="btn">Image<input id="upImage" type="file" accept="image/*" hidden></label>
+      <label class="btn">Font<input id="upFont" type="file" accept=".ttf,.otf,.woff,.woff2" hidden></label>
+    </div>
+    <select id="field"><option value="">+ Dynamic field…</option></select>
+    <div id="assets"></div>
+
+    <h3>Save</h3>
+    <div class="row">
+      <button id="save">Save</button>
+      <button id="undo">Undo</button>
+      <button id="download">Download PNG</button>
+    </div>
+  </aside>
+
+  <main><div id="canvas"></div></main>
+
+  <!-- Right: selected layer + personalised preview -->
+  <aside>
+    <div id="props" hidden>
+      <h3>Selected layer</h3>
+      <textarea data-prop="text" class="text"></textarea>
+      <select data-prop="fontFamily" class="text" id="fonts"></select>
+      <label class="row text">Size <input data-prop="fontSize" type="number"></label>
+      <div class="row text">
+        <select data-prop="fontStyle"><option>normal</option><option>bold</option><option>italic</option></select>
+        <select data-prop="align"><option>left</option><option>center</option><option>right</option></select>
+      </div>
+      <label class="row fill">Colour <input data-prop="fill" type="color"></label>
+      <div class="row">
+        <button id="forward">Forward</button>
+        <button id="back">Back</button>
+        <button id="delete">Delete</button>
+      </div>
+    </div>
+
+    <h3>Preview as fundraiser</h3>
+    <div class="row"><select id="fundraiser"></select><button id="preview">Preview</button></div>
+    <div id="preview-box"></div>
+    <button id="download-preview" hidden>Download personalised PNG</button>
+    <h3>Page block</h3>
+    <textarea id="embed" readonly placeholder="Click Preview to get the block for this fundraiser"></textarea>
+  </aside>
+
+  <script src="https://cdn.jsdelivr.net/npm/konva@9/konva.min.js"></script>
+  <script src="draw.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+.page {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.kicker {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: var(--moss);
+}
+
+.title {
+  margin-top: 8px;
+  font-size: 48px;
+  line-height: 1;
+}
+
+.intro {
+  margin-top: 16px;
+  max-width: 672px;
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--pine);
+}
+
+.section {
+  margin-top: 56px;
+}
+
+.section + .section {
+  margin-top: 64px;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+/* Resource cards: 1 column on phones, 2 from tablet up */
+.resources {
+  margin-top: 24px;
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .resources {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.card {
+  border-radius: 16px;
+  background: #fff;
+  padding: 24px;
+  box-shadow: var(--shadow-panel);
+}
+
+.campaign {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--coral);
+}
+
+.cardTitle {
+  margin-top: 8px;
+  font-size: 30px;
+  line-height: 36px;
+}
+
+.meta {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--moss);
+}
+
+.actions {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Fundraiser cards: 1, 2 or 4 columns depending on screen width */
+.people {
+  margin-top: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .people {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .people {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.person {
+  border-radius: 16px;
+  border: 1px solid var(--mist);
+  background: #fff;
+  padding: 20px;
+}
+
+.personName {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.personStory {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--pine);
+}
+
+.personProgress {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--moss);
+}

@@ -1,0 +1,12 @@
+{
+  "name": "resource-builder-lite",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Design a fundraising resource once, personalise it for every fundraiser, embed and download it.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

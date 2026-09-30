@@ -1,0 +1,124 @@
+/* ---- Colours, fonts and shadow used across the app ---- */
+:root {
+  --ink: #1a1915;
+  --paper: #f4efe6;
+  --mist: #e7e0d4;
+  --pine: #1f4a45;
+  --moss: #3c6e67;
+  --coral: #c45c3e;
+  --gold: #c9a227;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Source Sans 3", "Segoe UI", sans-serif;
+  --shadow-panel: 0 18px 40px rgba(26, 25, 21, 0.08);
+}
+
+/* ---- Small reset so every browser starts the same ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+h1,
+h2,
+h3,
+p,
+figure,
+pre,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Shared text styles ---- */
+.display {
+  font-family: var(--font-display);
+}
+
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--moss);
+}
+
+.muted {
+  font-size: 14px;
+  color: var(--moss);
+}
+
+/* ---- Shared buttons: combine "btn" with one colour style ---- */
+.btn {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.btn-small {
+  padding: 6px 16px;
+}
+
+.btn-large {
+  padding: 12px 20px;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--coral);
+  color: #fff;
+}
+
+.btn-dark {
+  background: var(--pine);
+  color: var(--paper);
+}
+
+.btn-outline {
+  border: 1px solid var(--pine);
+}

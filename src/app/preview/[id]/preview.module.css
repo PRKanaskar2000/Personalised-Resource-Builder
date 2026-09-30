@@ -1,0 +1,53 @@
+.page {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.title {
+  margin-top: 16px;
+  font-size: 36px;
+  line-height: 40px;
+}
+
+.intro {
+  margin-top: 8px;
+  max-width: 672px;
+  color: var(--pine);
+}
+
+/* One card per fundraiser: 1 column on phones, 2 from 640px */
+.grid {
+  margin-top: 40px;
+  display: grid;
+  gap: 32px;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.card {
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: var(--shadow-panel);
+}
+
+.caption {
+  margin-top: 16px;
+}
+
+.name {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.svgLink {
+  margin-top: 8px;
+  display: inline-block;
+  font-size: 14px;
+  color: var(--coral);
+}

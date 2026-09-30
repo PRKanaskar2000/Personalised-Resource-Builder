@@ -1,0 +1,246 @@
+/* Three columns: layers | canvas | inspector */
+.shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 280px 1fr 320px;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 20px;
+}
+
+.left {
+  border-right: 1px solid var(--mist);
+}
+
+.right {
+  border-left: 1px solid var(--mist);
+}
+
+.nameInput {
+  margin-top: 12px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 32px;
+  outline: none;
+}
+
+/* ---- Left: add layer + layer list ---- */
+.addGroup {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.addButton {
+  width: 100%;
+  border-radius: 8px;
+  background: var(--mist);
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.addButton:hover {
+  background: rgba(201, 162, 39, 0.3);
+}
+
+.layers {
+  margin-top: 32px;
+}
+
+.layerList {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.layerRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.layerRow:hover {
+  background: var(--mist);
+}
+
+.layerRowActive,
+.layerRowActive:hover {
+  background: var(--pine);
+  color: var(--paper);
+}
+
+.layerType {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* ---- Middle: toolbar + canvas ---- */
+.main {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--mist);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 12px 24px;
+}
+
+.select {
+  border-radius: 6px;
+  border: 1px solid var(--mist);
+  background: #fff;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.toolbarActions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.stage {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 32px;
+}
+
+/* ---- Right: inspector ---- */
+.hint {
+  margin-top: 16px;
+}
+
+.inspector {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.field {
+  display: block;
+}
+
+.input {
+  margin-top: 4px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--mist);
+  padding: 4px 8px;
+}
+
+.colour {
+  margin-left: 8px;
+}
+
+.fieldPicker {
+  max-height: 192px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--mist);
+  padding: 8px;
+}
+
+.fieldGroup {
+  margin-bottom: 8px;
+}
+
+.fieldCategory {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--moss);
+}
+
+.chip {
+  margin: 4px 4px 0 0;
+  border-radius: 4px;
+  background: #fff;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.assets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.asset {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  background: var(--mist);
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.smallButton {
+  border-radius: 4px;
+  background: var(--mist);
+  padding: 4px 8px;
+}
+
+.delete {
+  align-self: flex-start;
+  color: var(--coral);
+}
+
+.embed {
+  margin-top: 32px;
+  border-radius: 12px;
+  background: var(--pine);
+  padding: 16px;
+  color: var(--paper);
+}
+
+.embedTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 28px;
+}
+
+.code {
+  margin-top: 8px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 20px;
+}
