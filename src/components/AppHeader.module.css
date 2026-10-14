@@ -1,0 +1,36 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--mist);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 12px 24px;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 14px;
+}
+
+.crumb a {
+  color: var(--moss);
+}
+
+.crumb a:hover {
+  text-decoration: underline;
+}
+
+.separator {
+  margin: 0 8px;
+  color: var(--moss);
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

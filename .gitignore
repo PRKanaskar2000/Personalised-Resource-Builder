@@ -7,3 +7,4 @@ data/*.json
 public/uploads/*
 !public/uploads/.gitkeep
 .claude/
+tsconfig.tsbuildinfo

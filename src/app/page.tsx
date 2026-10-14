@@ -1,65 +1,61 @@
 import Link from "next/link";
-import { listResources, listTemplates } from "@/lib/store";
-import { DUMMY_FUNDRAISERS } from "@/lib/connectors/dummy";
-import { NewResourceButton } from "@/components/NewResourceButton";
-import styles from "./home.module.css";
+import { redirect } from "next/navigation";
+import { EditClientButton, NewClientForm } from "@/components/AccountForms";
+import { AppHeader } from "@/components/AppHeader";
+import { DeleteButton } from "@/components/DeleteButton";
+import { requireSession } from "@/lib/auth";
+import { listClients } from "@/lib/store";
+import styles from "./account.module.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  const [resources, templates] = await Promise.all([listResources(), listTemplates()]);
+// The first page after logging in.
+//  - A client goes straight to their own events.
+//  - The admin sees every client, and creates their logins here.
+export default async function StartPage() {
+  const session = await requireSession();
+  if (session.role === "client") redirect(`/clients/${session.clientId}`);
+
+  const clients = await listClients();
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <p className={styles.kicker}>Fundraising studio</p>
-          <h1 className={`display ${styles.title}`}>Personalised Resource Builder</h1>
-          <p className={styles.intro}>
-            Design a resource once. Personalise it for Peter, Alex, Alan and Richi from connected fundraising data —
-            then download, render, or embed it.
-          </p>
-        </div>
-        <NewResourceButton templates={templates} />
-      </header>
+    <>
+      <AppHeader session={session} crumbs={[{ label: "Clients" }]} />
+      <main className={styles.page}>
+        <h1 className={`display ${styles.title}`}>Clients</h1>
+        <p className={styles.intro}>
+          Each client logs in with their own username and password, and sees only their own events.
+        </p>
 
-      <section className={styles.section}>
-        <h2 className={`display ${styles.sectionTitle}`}>Resources</h2>
-        <div className={styles.resources}>
-          {resources.map((resource) => (
-            <article key={resource.id} className={styles.card}>
-              <p className={styles.campaign}>{resource.campaignId}</p>
-              <h3 className={`display ${styles.cardTitle}`}>{resource.name}</h3>
-              <p className={styles.meta}>{resource.design.layers.length} layers · JSON design</p>
-              <div className={styles.actions}>
-                <Link href={`/editor/${resource.id}`} className="btn btn-dark">
-                  Open editor
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>Add a client</h2>
+          <NewClientForm />
+        </section>
+
+        {clients.length === 0 && <p className="muted">No clients yet. Add the first one above.</p>}
+        <ul className={styles.list}>
+          {clients.map((client) => (
+            <li key={client.id} className={styles.listRow}>
+              <div className={styles.listMain}>
+                <Link href={`/clients/${client.id}`} className={`display ${styles.listName}`}>
+                  {client.name}
                 </Link>
-                <Link href={`/preview/${resource.id}`} className="btn btn-outline">
-                  Dummy user preview
-                </Link>
+                <p className="muted">Username: {client.username}</p>
               </div>
-            </article>
+              <Link href={`/clients/${client.id}`} className="btn btn-small btn-dark">
+                Open events
+              </Link>
+              <EditClientButton client={client} />
+              <DeleteButton
+                url={`/api/clients/${client.id}`}
+                name={client.name}
+                warning="All of this client's events, resources and download history are deleted too."
+                className="btn btn-small btn-outline"
+              />
+            </li>
           ))}
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={`display ${styles.sectionTitle}`}>Connected fundraisers</h2>
-        <div className={styles.people}>
-          {DUMMY_FUNDRAISERS.map((person) => (
-            <article key={person.individual.id} className={styles.person}>
-              <h3 className={`display ${styles.personName}`}>{person.individual.firstName}</h3>
-              <p className={styles.personStory}>
-                {person.activity.type} for {person.relationship.supporting}
-              </p>
-              <p className={styles.personProgress}>
-                {Math.round(person.fundraising.progress * 100)}% of {person.fundraising.goal.toLocaleString()}
-              </p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
+        </ul>
+      </main>
+    </>
   );
 }

@@ -1,5 +1,22 @@
-import { resolveLayers } from "./resolve";
-import type { DesignDocument, NormalisedFundraiser, TextStyle } from "../types";
+import { imageDataUrl } from "./inline-images";
+import { inlineFontCss } from "./inline-fonts";
+import {
+  FILL_STYLE,
+  IMAGE_STYLE,
+  TEXT_BOX_STYLE,
+  boxStyle,
+  canvasStyle,
+  segmentStyle,
+  textStyle,
+  toCss,
+} from "./layer-styles";
+import { resolveLayers, type ResolvedLayer } from "./resolve";
+import type { DesignDocument, NormalisedFundraiser } from "../types";
+
+// Builds the finished image of a design as one self-contained SVG file.
+// Inside the SVG is ordinary HTML laid out with the same styles as the editor (layer-styles.ts),
+// so text wraps, centres and uses fonts exactly as it does on the editor canvas.
+// Fonts and pictures are written into the file, because an image cannot load anything else.
 
 function esc(value: string) {
   return value
@@ -9,49 +26,58 @@ function esc(value: string) {
     .replaceAll('"', "&quot;");
 }
 
-function textAnchor(align: TextStyle["align"]) {
-  if (align === "left") return "start";
-  if (align === "right") return "end";
-  return "middle";
+const tag = (style: Parameters<typeof toCss>[0], content = "") => `<div style="${esc(toCss(style))}">${content}</div>`;
+
+/** Which fonts and weights the design's texts use: { "Fraunces": {600, 700} } */
+function usedFonts(items: ResolvedLayer[]) {
+  const used = new Map<string, Set<number>>();
+  const add = (family: string, weight: number) => used.set(family, (used.get(family) ?? new Set()).add(weight));
+  for (const { layer, visible, segments } of items) {
+    if (!visible || !("style" in layer)) continue;
+    add(layer.style.fontFamily, layer.style.fontWeight);
+    for (const { style } of segments ?? []) {
+      add(style.fontFamily ?? layer.style.fontFamily, style.fontWeight ?? layer.style.fontWeight);
+    }
+  }
+  return used;
 }
 
-function textX(align: TextStyle["align"], x: number, width: number) {
-  if (align === "left") return x + 8;
-  if (align === "right") return x + width - 8;
-  return x + width / 2;
+function layerHtml({ layer, text, segments, imageSrc, progress }: ResolvedLayer, images: Map<string, string | null>) {
+  let content = "";
+  if ((layer.type === "text" || layer.type === "dynamic-text") && text) {
+    const spans = (segments ?? []).map(
+      (segment) => `<span style="${esc(toCss(segmentStyle(segment.style)))}">${esc(segment.text)}</span>`,
+    );
+    content = tag(TEXT_BOX_STYLE, tag(textStyle(layer.style), spans.join("")));
+  } else if (layer.type === "image" || layer.type === "dynamic-image") {
+    const picture = imageSrc && images.get(imageSrc);
+    if (picture) content = `<img src="${esc(picture)}" alt="" style="${esc(toCss(IMAGE_STYLE))}" />`;
+  } else if (layer.type === "progress-bar") {
+    const bar = tag({ ...FILL_STYLE, width: `${(progress ?? 0) * 100}%`, background: layer.fill });
+    content = tag({ ...FILL_STYLE, background: layer.track }, bar);
+  }
+  return tag(boxStyle(layer), content);
 }
 
-export function designToSvg(design: DesignDocument, fundraiser?: NormalisedFundraiser | null): string {
-  const { width, height, background } = design.canvas;
-  const nodes = resolveLayers(design, fundraiser)
-    .filter((item) => item.visible)
-    .map(({ layer, text, imageSrc, progress }) => {
-      const common = `opacity="${layer.opacity}" transform="rotate(${layer.rotation} ${layer.x + layer.width / 2} ${layer.y + layer.height / 2})"`;
-      if (layer.type === "rect") {
-        return `<rect x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" rx="${layer.radius}" fill="${layer.fill}" ${common} />`;
-      }
-      if (layer.type === "ellipse") {
-        return `<ellipse cx="${layer.x + layer.width / 2}" cy="${layer.y + layer.height / 2}" rx="${layer.width / 2}" ry="${layer.height / 2}" fill="${layer.fill}" ${common} />`;
-      }
-      if (layer.type === "progress-bar") {
-        const filled = Math.round(layer.width * (progress ?? 0));
-        return `<g ${common}><rect x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" rx="${layer.radius}" fill="${layer.track}" /><rect x="${layer.x}" y="${layer.y}" width="${filled}" height="${layer.height}" rx="${layer.radius}" fill="${layer.fill}" /></g>`;
-      }
-      if ((layer.type === "image" || layer.type === "dynamic-image") && imageSrc) {
-        const clip = `clip-${layer.id}`;
-        return `<defs><clipPath id="${clip}"><rect x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" rx="${"radius" in layer ? layer.radius : 0}" /></clipPath></defs><image href="${esc(imageSrc)}" x="${layer.x}" y="${layer.y}" width="${layer.width}" height="${layer.height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clip})" ${common} />`;
-      }
-      if (text && (layer.type === "text" || layer.type === "dynamic-text")) {
-        const style = layer.style;
-        return `<text x="${textX(style.align, layer.x, layer.width)}" y="${layer.y + layer.height / 2}" text-anchor="${textAnchor(style.align)}" dominant-baseline="middle" font-family="${esc(style.fontFamily)}" font-size="${style.fontSize}" font-weight="${style.fontWeight}" fill="${style.color}" letter-spacing="${style.letterSpacing}" ${common}>${esc(text)}</text>`;
-      }
-      return "";
-    })
-    .join("\n");
+export async function designToSvg(design: DesignDocument, fundraiser?: NormalisedFundraiser | null): Promise<string> {
+  const { width, height, backgroundImage } = design.canvas;
+  const items = resolveLayers(design, fundraiser).filter((item) => item.visible);
+
+  // Fetch every picture and font the design needs, all at once
+  const sources = [...new Set([backgroundImage, ...items.map((item) => item.imageSrc)].filter((src): src is string => !!src))];
+  const [fontCss, ...pictures] = await Promise.all([inlineFontCss(usedFonts(items)), ...sources.map(imageDataUrl)]);
+  const images = new Map(sources.map((src, index) => [src, pictures[index]]));
+
+  const background = backgroundImage ? (images.get(backgroundImage) ?? undefined) : undefined;
+  const page = tag(
+    { ...canvasStyle(design.canvas, background), fontFamily: "sans-serif", lineHeight: 1.5 },
+    `<style>${fontCss}</style>${items.map((item) => layerHtml(item, images)).join("")}`,
+  );
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <rect width="${width}" height="${height}" fill="${background}" />
-  ${nodes}
+  <foreignObject width="${width}" height="${height}">
+    <div xmlns="http://www.w3.org/1999/xhtml">${page}</div>
+  </foreignObject>
 </svg>`;
 }

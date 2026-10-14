@@ -1,0 +1,86 @@
+.form {
+  margin-top: 24px;
+  border: 1px solid var(--mist);
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Space above the second list */
+.add + .title {
+  margin-top: 28px;
+}
+
+.help {
+  margin-top: 2px;
+  max-width: 720px;
+  font-size: 13px;
+  color: var(--moss);
+}
+
+.add {
+  margin-top: 12px;
+}
+
+/* A small table: name | amount | field | remove. Each .row lays its cells into these columns. */
+.rows {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(140px, 220px) minmax(160px, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.row {
+  display: contents;
+}
+
+.heading {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--moss);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--mist);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.token {
+  font-size: 13px;
+  color: var(--pine);
+}
+
+.remove {
+  font-size: 13px;
+  color: var(--coral);
+}
+
+.actions {
+  margin-top: 24px;
+  border-top: 1px solid var(--mist);
+  padding-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* On a phone the four columns do not fit, so each row stacks */
+@media (max-width: 640px) {
+  .rows {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .heading {
+    display: none;
+  }
+}

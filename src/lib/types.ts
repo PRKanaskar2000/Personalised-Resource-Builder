@@ -18,6 +18,24 @@ export interface TextStyle {
   align: TextAlign;
   lineHeight: number;
   letterSpacing: number;
+  /** Letter case shown, whatever case the text or value was typed in. Missing = as typed */
+  textTransform?: LetterCase;
+}
+
+export type LetterCase = "none" | "uppercase" | "lowercase" | "capitalize";
+
+/**
+ * A styled part of a text: characters start..end get their own colour, font or weight.
+ * The positions count characters in the text exactly as typed (including {{field}} names).
+ */
+export interface TextRange {
+  start: number;
+  end: number;
+  color?: string;
+  fontFamily?: string;
+  fontWeight?: number;
+  fontSize?: number;
+  textTransform?: LetterCase;
 }
 
 export interface BaseLayer {
@@ -33,6 +51,9 @@ export interface BaseLayer {
   locked: boolean;
   hidden: boolean;
   hideIfEmpty?: boolean;
+  /** Border drawn inside the layer's edge, in pixels (shapes and images). 0 or missing = none */
+  borderWidth?: number;
+  borderColor?: string;
 }
 
 export interface RectLayer extends BaseLayer {
@@ -50,6 +71,7 @@ export interface TextLayer extends BaseLayer {
   type: "text";
   text: string;
   style: TextStyle;
+  ranges?: TextRange[];
 }
 
 export interface ImageLayer extends BaseLayer {
@@ -64,6 +86,7 @@ export interface DynamicTextLayer extends BaseLayer {
   template: string;
   style: TextStyle;
   format?: FieldFormat;
+  ranges?: TextRange[];
 }
 
 export interface DynamicImageLayer extends BaseLayer {
@@ -95,6 +118,8 @@ export interface CanvasConfig {
   width: number;
   height: number;
   background: string;
+  /** Optional image shown over the background colour, covering the whole canvas */
+  backgroundImage?: string;
 }
 
 export interface DesignDocument {
@@ -103,35 +128,53 @@ export interface DesignDocument {
   layers: Layer[];
 }
 
-export interface ResourceRecord {
+/** A company that logs in. It owns events, and can only ever see its own. */
+export interface ClientRecord {
   id: string;
   name: string;
-  organisationId: string;
-  campaignId: string;
-  templateId?: string;
+  username: string;
+  createdAt: string;
+}
+
+/** An event (shown as a folder) belongs to one client and holds resources, images and settings */
+export interface EventRecord {
+  id: string;
+  clientId: string;
+  name: string;
+  settings: AppSettings;
+  createdAt: string;
+}
+
+export interface ResourceRecord {
+  id: string;
+  /** The event this resource belongs to */
+  eventId: string;
+  name: string;
   design: DesignDocument;
   createdAt: string;
   updatedAt: string;
   versions: { at: string; design: DesignDocument }[];
 }
 
-export interface TemplateRecord {
-  id: string;
-  name: string;
-  description: string;
-  design: DesignDocument;
-  lockedLayerIds: string[];
-  createdAt: string;
-}
-
+/** An uploaded image. It belongs to one event; the file is kept in Supabase Storage. */
 export interface AssetRecord {
   id: string;
+  eventId: string;
   name: string;
-  kind: "background" | "graphic" | "icon" | "upload" | "logo";
-  scope: "platform" | "organisation" | "campaign";
   mimeType: string;
   url: string;
   createdAt: string;
+}
+
+/** One download of a resource, and the page it was downloaded from */
+export interface DownloadRecord {
+  resourceId: string;
+  url: string;
+  format: string;
+  at: string;
+  /** Who downloaded it, when the page told us */
+  memberId?: string;
+  memberName?: string;
 }
 
 export interface FundraisingIndividual {
@@ -148,6 +191,10 @@ export interface FundraisingTotals {
   amountRaised: number;
   progress: number;
   donationCount: number;
+  largestDonation: number;
+  averageDonation: number;
+  /** Worked out by the app from amountRaised and the cost-per-call setting */
+  callsAnswered?: number;
   currency: string;
 }
 
@@ -167,6 +214,8 @@ export interface FundraisingActivity {
   name: string;
   distanceKm: number;
   targetDistanceKm: number;
+  /** Distance covered against the target, 0 to 1 */
+  progress: number;
   date: string;
   location: string;
 }
@@ -180,6 +229,17 @@ export interface FundraisingTeam {
   amountRaised: number;
   progress: number;
   memberCount: number;
+  donationCount: number;
+  distanceKm: number;
+  targetDistanceKm: number;
+  /** Team distance covered against the team target, 0 to 1 */
+  fitnessProgress: number;
+  /** Worked out by the app from the team's amountRaised and the cost-per-call setting */
+  callsAnswered?: number;
+}
+
+export interface FundraisingOrganisation {
+  name: string;
 }
 
 export interface FundraisingEvent {
@@ -188,6 +248,10 @@ export interface FundraisingEvent {
   location: string;
   url: string;
   logo: string;
+  goal: number;
+  amountRaised: number;
+  progress: number;
+  donationCount: number;
 }
 
 export interface NormalisedFundraiser {
@@ -197,8 +261,13 @@ export interface NormalisedFundraiser {
   relationship: FundraisingRelationship;
   activity: FundraisingActivity;
   team: FundraisingTeam;
+  organisation: FundraisingOrganisation;
   event: FundraisingEvent;
   custom: Record<string, string | number>;
+  /** Worked out by the app from the settings: how many of each impact unit the member has funded */
+  impact: Record<string, number>;
+  /** The same for the member's team */
+  teamImpact: Record<string, number>;
 }
 
 export interface FieldDefinition {
@@ -207,6 +276,42 @@ export interface FieldDefinition {
   category: string;
   format: FieldFormat;
   kind: "text" | "image" | "number";
+  /** PHP expression that gives this value on a Funraisin page. Missing = not mapped yet. */
+  funraisin?: string;
+  /** Which database lookups that expression relies on (see FUNRAISIN_LOOKUPS in embed-code.ts) */
+  needs?: FunraisinLookup[];
+  /** For a value the app works out itself: the fields it is calculated from */
+  derivedFrom?: string[];
+}
+
+/** A group of values the embed code reads from the Funraisin database */
+export type FunraisinLookup = "raised" | "team" | "teamRaised" | "teamDistance" | "organisation" | "custom";
+
+/** The settings of one event: the variables you manage yourself */
+export interface AppSettings {
+  impacts: ImpactUnit[];
+  customFields: CustomField[];
+}
+
+/** A custom variable of this event: a field the fundraising platform stores for each member */
+export interface CustomField {
+  /** The platform's field_name, used in templates as {{custom.key}} */
+  key: string;
+  /** The name shown in the editor (also used as the dummy value on the canvas) */
+  label: string;
+}
+
+/**
+ * Something a donation pays for, e.g. "Calls" at $39 each or "Nights" at $20 each.
+ * The number shown on a resource is the amount raised divided by `amount`, rounded down.
+ */
+export interface ImpactUnit {
+  /** Used in templates: {{impact.calls}} for the member, {{teamImpact.calls}} for the team. Made from the name. */
+  key: string;
+  /** The name shown in the editor. Renaming it renames the key, and designs are updated to match. */
+  name: string;
+  /** Dollars for one unit */
+  amount: number;
 }
 
 export interface Connector {

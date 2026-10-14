@@ -1,165 +1,86 @@
 import type { Connector, NormalisedFundraiser } from "../types";
 
-const AVATAR = (seed: string, bg: string) =>
-  `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}`;
+// The sample data shown in the editor. Text values are simply the name of the field
+// ("User Name", "Team Name"), so it is obvious which words on a resource are dynamic.
+// On a real fundraising page the embed replaces them with the member's own values.
 
-const TEAM = {
-  id: "team_hope",
-  name: "Hope Collective",
-  image: AVATAR("HopeCollective", "d4c4a8"),
-  url: "https://example.org/teams/hope",
-  goal: 40000,
-  amountRaised: 18640,
-  progress: 0.466,
-  memberCount: 12,
+// A plain grey person icon, used as the sample photo (kept inside the code so it always loads)
+const SAMPLE_PHOTO =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#d9d4c9"/>' +
+      '<circle cx="100" cy="78" r="38" fill="#8f8a80"/><path d="M28 200c0-42 32-70 72-70s72 28 72 70z" fill="#8f8a80"/></svg>',
+  );
+
+export const SAMPLE_FUNDRAISER: NormalisedFundraiser = {
+  individual: {
+    id: "sample",
+    firstName: "User Name",
+    lastName: "Last Name",
+    fullName: "Full Name",
+    profileImage: SAMPLE_PHOTO,
+    profileUrl: "",
+  },
+  fundraising: {
+    goal: 1000,
+    amountRaised: 650,
+    progress: 0.65,
+    donationCount: 12,
+    largestDonation: 100,
+    averageDonation: 54,
+    currency: "AUD",
+  },
+  story: { motivation: "", personalMessage: "", biography: "" },
+  relationship: { connection: "", supporting: "Connection" },
+  activity: {
+    type: "Activity",
+    name: "",
+    distanceKm: 42,
+    targetDistanceKm: 100,
+    progress: 0.42,
+    date: "",
+    location: "",
+  },
+  team: {
+    id: "sample_team",
+    name: "Team Name",
+    image: "",
+    url: "",
+    goal: 5000,
+    amountRaised: 3200,
+    progress: 0.64,
+    memberCount: 8,
+    donationCount: 48,
+    distanceKm: 320,
+    targetDistanceKm: 500,
+    fitnessProgress: 0.64,
+  },
+  organisation: { name: "Organisation Name" },
+  event: {
+    name: "Event Name",
+    date: "",
+    location: "",
+    url: "",
+    logo: "",
+    goal: 100000,
+    amountRaised: 64000,
+    progress: 0.64,
+    donationCount: 950,
+  },
+  // Custom variables come from the settings and show their label (see withSampleCustomFields)
+  custom: {},
+  // Filled in by the app from the settings (see withDerivedValues)
+  impact: {},
+  teamImpact: {},
 };
-
-const EVENT = {
-  name: "City Challenge 2026",
-  date: "2026-05-17",
-  location: "Melbourne",
-  url: "https://example.org/events/city-challenge",
-  logo: AVATAR("CityChallenge", "1f4a45"),
-};
-
-function person(partial: Omit<NormalisedFundraiser, "team" | "event" | "custom">): NormalisedFundraiser {
-  return { ...partial, team: TEAM, event: EVENT, custom: {} };
-}
-
-export const DUMMY_FUNDRAISERS: NormalisedFundraiser[] = [
-  person({
-    individual: {
-      id: "peter",
-      firstName: "Peter",
-      lastName: "Walsh",
-      fullName: "Peter Walsh",
-      profileImage: AVATAR("PeterWalsh", "c45c3e"),
-      profileUrl: "https://example.org/p/peter",
-    },
-    fundraising: {
-      goal: 5000,
-      amountRaised: 3275,
-      progress: 0.655,
-      donationCount: 28,
-      currency: "AUD",
-    },
-    story: {
-      motivation: "Running every sunrise until Sarah's treatment is fully funded.",
-      personalMessage: "Every kilometre is for Sarah.",
-      biography: "Peter is raising funds while training for the City Challenge.",
-    },
-    relationship: { connection: "sister", supporting: "his sister Sarah" },
-    activity: {
-      type: "Running",
-      name: "Sunrise miles",
-      distanceKm: 84,
-      targetDistanceKm: 120,
-      date: "2026-05-17",
-      location: "Melbourne",
-    },
-  }),
-  person({
-    individual: {
-      id: "alex",
-      firstName: "Alex",
-      lastName: "Nguyen",
-      fullName: "Alex Nguyen",
-      profileImage: AVATAR("AlexNguyen", "3c6e67"),
-      profileUrl: "https://example.org/p/alex",
-    },
-    fundraising: {
-      goal: 2500,
-      amountRaised: 980,
-      progress: 0.392,
-      donationCount: 11,
-      currency: "AUD",
-    },
-    story: {
-      motivation: "Walking with a friend who never walks alone.",
-      personalMessage: "Join me for the long walk.",
-      biography: "Alex is walking the event route in honour of a close friend.",
-    },
-    relationship: { connection: "friend", supporting: "a friend" },
-    activity: {
-      type: "Walking",
-      name: "Coastal walk",
-      distanceKm: 22,
-      targetDistanceKm: 42,
-      date: "2026-05-17",
-      location: "St Kilda",
-    },
-  }),
-  person({
-    individual: {
-      id: "alan",
-      firstName: "Alan",
-      lastName: "Brooks",
-      fullName: "Alan Brooks",
-      profileImage: AVATAR("AlanBrooks", "c9a227"),
-      profileUrl: "https://example.org/p/alan",
-    },
-    fundraising: {
-      goal: 8000,
-      amountRaised: 8120,
-      progress: 1.015,
-      donationCount: 41,
-      currency: "AUD",
-    },
-    story: {
-      motivation: "Cycling the long way around for a charity that changed our family.",
-      personalMessage: "The charity carried us. Now we ride.",
-      biography: "Alan is cycling to thank the charity that supported his family.",
-    },
-    relationship: { connection: "charity", supporting: "his charity" },
-    activity: {
-      type: "Cycling",
-      name: "Bay loop",
-      distanceKm: 110,
-      targetDistanceKm: 100,
-      date: "2026-05-17",
-      location: "Port Phillip",
-    },
-  }),
-  person({
-    individual: {
-      id: "richi",
-      firstName: "Richi",
-      lastName: "Patel",
-      fullName: "Richi Patel",
-      profileImage: AVATAR("RichiPatel", "1a1915"),
-      profileUrl: "https://example.org/p/richi",
-    },
-    fundraising: {
-      goal: 3000,
-      amountRaised: 1460,
-      progress: 0.487,
-      donationCount: 16,
-      currency: "AUD",
-    },
-    story: {
-      motivation: "Running alongside a colleague who showed up when it counted.",
-      personalMessage: "This one's for the office legend.",
-      biography: "Richi is running for a colleague facing a long recovery.",
-    },
-    relationship: { connection: "colleague", supporting: "his colleague" },
-    activity: {
-      type: "Running",
-      name: "Relay miles",
-      distanceKm: 31,
-      targetDistanceKm: 50,
-      date: "2026-05-17",
-      location: "Docklands",
-    },
-  }),
-];
 
 export const dummyConnector: Connector = {
   id: "dummy",
-  name: "Demo fundraising API",
+  name: "Sample data",
   async listFundraisers() {
-    return DUMMY_FUNDRAISERS;
+    return [SAMPLE_FUNDRAISER];
   },
   async getFundraiser(id: string) {
-    return DUMMY_FUNDRAISERS.find((row) => row.individual.id === id) ?? null;
+    return id === SAMPLE_FUNDRAISER.individual.id ? SAMPLE_FUNDRAISER : null;
   },
 };

@@ -1,0 +1,159 @@
+/* Styles for the login page, the clients list and the events (folders) page */
+
+.page {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.title {
+  margin-top: 8px;
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+.intro {
+  margin-top: 12px;
+  max-width: 672px;
+  color: var(--pine);
+}
+
+/* A white box holding a form */
+.panel {
+  margin: 28px 0;
+  border: 1px solid var(--mist);
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+}
+
+.panelTitle {
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ---- Login ---- */
+.loginPage {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
+  background: #fff;
+  padding: 32px;
+  box-shadow: var(--shadow-panel);
+}
+
+.loginTitle {
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.loginIntro {
+  margin: 8px 0 24px;
+  color: var(--pine);
+}
+
+/* ---- Clients: one row each ---- */
+.list {
+  border: 1px solid var(--mist);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.list:empty {
+  display: none;
+}
+
+.listRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.listRow + .listRow {
+  border-top: 1px solid var(--mist);
+}
+
+.listMain {
+  flex: 1;
+  min-width: 200px;
+}
+
+.listName {
+  font-size: 20px;
+}
+
+.listName:hover {
+  text-decoration: underline;
+}
+
+/* ---- Events: a grid of folders ---- */
+.folders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.folder {
+  position: relative;
+  border: 1px solid var(--mist);
+  border-radius: 12px;
+  background: #fff;
+  transition: box-shadow 0.15s;
+}
+
+.folder:hover {
+  box-shadow: var(--shadow-panel);
+}
+
+.folderLink {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px;
+}
+
+/* A simple folder shape drawn with CSS: the body, and a tab on top */
+.folderIcon {
+  position: relative;
+  margin: 10px 0 12px;
+  width: 64px;
+  height: 44px;
+  border-radius: 4px 6px 6px 6px;
+  background: var(--gold);
+}
+
+.folderIcon::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -8px;
+  width: 28px;
+  height: 10px;
+  border-radius: 4px 4px 0 0;
+  background: var(--gold);
+}
+
+.folderName {
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.folderDelete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 13px;
+  color: var(--coral);
+}

@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import { createResource, listResources, listTemplates } from "@/lib/store";
+import { eventFor, notFound, notLoggedIn } from "@/lib/access";
+import { getSession } from "@/lib/auth";
+import { createResource, uniqueResourceName } from "@/lib/store";
 
-export async function GET() {
-  return NextResponse.json(await listResources());
-}
-
+// POST /api/resources with { eventId, name }: create a resource in an event, from the default design.
+// A name already used in the event gets a number: "Poster", "Poster 1", "Poster 2"…
 export async function POST(request: Request) {
-  const body = (await request.json()) as { name?: string; templateId?: string };
-  const templates = await listTemplates();
-  const template = templates.find((row) => row.id === body.templateId);
-  const resource = await createResource(body.name || "Untitled resource", template);
-  return NextResponse.json(resource);
+  const session = await getSession();
+  if (!session) return notLoggedIn();
+  const body = (await request.json().catch(() => ({}))) as { eventId?: unknown; name?: unknown };
+  const event = await eventFor(session, String(body.eventId ?? ""));
+  if (!event) return notFound();
+  const name = String(body.name ?? "").trim().slice(0, 80) || "Untitled resource";
+  return NextResponse.json(await createResource(event.id, await uniqueResourceName(event.id, name)));
 }

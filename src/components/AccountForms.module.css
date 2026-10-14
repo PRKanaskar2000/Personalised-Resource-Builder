@@ -1,0 +1,71 @@
+/* Fields one under another (the login form) */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Fields side by side with the button at the end (create client, create event) */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.row .label {
+  flex: 1 1 200px;
+}
+
+/* The edit form of a client: on its own line, under the client's name and buttons */
+.edit {
+  order: 1;
+  flex-basis: 100%;
+  margin-top: 4px;
+  border-top: 1px solid var(--mist);
+  padding-top: 14px;
+}
+
+/* "Rename" on an event folder: sits beside "Delete" in the folder's top right corner */
+.folderRename {
+  position: absolute;
+  top: 12px;
+  right: 64px;
+  font-size: 13px;
+  color: var(--pine);
+}
+
+.folderRename:hover {
+  text-decoration: underline;
+}
+
+/* The rename form, at the bottom of the folder */
+.folderForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 20px 12px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+}
+
+.input {
+  display: block;
+  margin-top: 4px;
+  width: 100%;
+  border: 1px solid var(--mist);
+  border-radius: 6px;
+  background: #fff;
+  padding: 8px 10px;
+}
+
+/* Empty until there is something to say, so the form does not jump */
+.error {
+  flex-basis: 100%;
+  min-height: 20px;
+  font-size: 14px;
+  color: var(--coral);
+}

@@ -1,16 +1,18 @@
+/* Only editor-specific looks live here. How layers are laid out (position, text, images)
+   is in src/lib/render/layer-styles.ts, because the export uses the same styles. */
+
 .canvas {
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-panel);
+  /* Used when the design has a background image */
+  background-size: cover;
+  background-position: center;
 }
 
 /* Holds the design at full size; scaled down with a CSS transform */
 .inner {
   transform-origin: top left;
-}
-
-.layer {
-  position: absolute;
 }
 
 .movable {
@@ -21,21 +23,48 @@
   box-shadow: 0 0 0 2px var(--coral);
 }
 
-.text {
+/* Invisible box over the selected layer that carries the 8 resize handles */
+.selection {
+  position: absolute;
+  pointer-events: none;
+}
+
+.handle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: solid var(--coral);
+  border-radius: 20%;
+  background: #fff;
+  pointer-events: auto;
+}
+
+/* Round handle above the selected layer; drag it to rotate the layer */
+.rotateHandle {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+  border: solid var(--coral);
+  border-radius: 50%;
+  background: #fff;
+  line-height: 1;
+  color: var(--coral);
+  cursor: grab;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.rotateHandle:active {
+  cursor: grabbing;
+}
+
+.placeholder {
   display: flex;
   width: 100%;
   height: 100%;
   align-items: center;
-  padding: 0 8px;
-}
-
-.image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.full {
-  width: 100%;
-  height: 100%;
+  justify-content: center;
+  background: var(--mist);
+  color: var(--moss);
 }

@@ -1,11 +1,15 @@
 /* Three columns: layers | canvas | inspector */
+/* The editor is exactly as tall as the window. Each of the three columns scrolls by itself,
+   so the canvas stays in view while you scroll the inspector. */
 .shell {
   display: grid;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   grid-template-columns: 280px 1fr 320px;
 }
 
 .sidebar {
+  overflow-y: auto;
   background: rgba(255, 255, 255, 0.7);
   padding: 20px;
 }
@@ -92,6 +96,8 @@
 .main {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0; /* lets the canvas area scroll instead of stretching the page */
 }
 
 .toolbar {
@@ -119,6 +125,32 @@
   font-size: 14px;
 }
 
+/* − 62% + : zoom for the canvas only */
+.zoom {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--mist);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.zoom button {
+  min-width: 28px;
+  padding: 4px 8px;
+}
+
+.zoom button:hover {
+  background: var(--mist);
+}
+
+.zoomValue {
+  min-width: 52px;
+  border-left: 1px solid var(--mist);
+  border-right: 1px solid var(--mist);
+}
+
 .toolbarActions {
   margin-left: auto;
   display: flex;
@@ -128,10 +160,15 @@
 .stage {
   display: flex;
   flex: 1;
-  align-items: center;
-  justify-content: center;
+  min-height: 0;
   overflow: auto;
   padding: 32px;
+}
+
+/* Centre the canvas when there is room; when it is bigger than the area, scroll to all of it */
+.stage > * {
+  flex-shrink: 0;
+  margin: auto;
 }
 
 /* ---- Right: inspector ---- */
@@ -190,21 +227,106 @@
   font-size: 12px;
 }
 
-.assets {
+/* The image library: thumbnails in as many columns as fit */
+.assetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+/* One thumbnail with its delete button in the top-right corner */
+.assetTile {
+  position: relative;
+}
+
+.assetDelete {
+  position: absolute;
+  top: 3px;
+  right: 3px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(26, 25, 21, 0.75);
+  font-size: 15px;
+  line-height: 1;
+  color: #fff;
+}
+
+.assetDelete:hover {
+  background: var(--coral);
 }
 
 .asset {
+  display: block;
   width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: var(--mist);
+}
+
+.asset img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.assetActive {
+  border-color: var(--coral);
+}
+
+/* The file name under a thumbnail, cut short with … when it is long */
+.assetName {
+  margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-radius: 4px;
-  background: var(--mist);
-  padding: 4px 8px;
-  text-align: left;
+  font-size: 12px;
+  color: var(--moss);
+}
+
+.emptyImages {
+  margin-top: 24px;
+  color: var(--moss);
+}
+
+/* Width and height side by side */
+.sizeRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.help {
+  margin: 2px 0 6px;
+  font-size: 12px;
+  color: var(--moss);
+}
+
+/* Colour, font and weight pickers for the selected words, in one row */
+.selectionTools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.selectionTools .input {
+  margin-top: 0;
+}
+
+.selectionTools input[type="color"] {
+  width: 100%;
+  height: 31px;
+}
+
+.textButton {
+  font-size: 14px;
+  color: var(--coral);
 }
 
 .row {
@@ -238,9 +360,147 @@
   line-height: 28px;
 }
 
+/* Colour picker that sits under its label, like the other inputs */
+.colourBlock {
+  display: block;
+  margin-top: 4px;
+  width: 100%;
+  height: 31px;
+}
+
+/* ---- Download count ---- */
+.downloads {
+  margin-top: 32px;
+}
+
+.downloadTotal {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 36px;
+}
+
+.downloadList {
+  margin-top: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.downloadRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--mist);
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+/* ---- "View all downloads" pop-up ---- */
+.dialog {
+  width: min(960px, 92vw);
+  max-height: 80vh;
+  border: 0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-panel);
+  color: var(--ink);
+}
+
+.dialog::backdrop {
+  background: rgba(26, 25, 21, 0.45);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialogActions {
+  display: flex;
+  gap: 8px;
+}
+
+.dialogTitle {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+/* Scrolls when the list is long or the table is wider than the pop-up */
+.tableWrap {
+  margin-top: 16px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--mist);
+  padding: 8px 12px 8px 0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--moss);
+}
+
+.table a {
+  color: var(--pine);
+  text-decoration: underline;
+}
+
+/* Long addresses are cut with "…"; hover to see the full one */
+.downloadUrl {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pine);
+}
+
+.embedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.embedSelect {
+  border: 0;
+  border-radius: 6px;
+  background: var(--paper);
+  padding: 2px 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
 .code {
   margin-top: 8px;
+  max-height: 320px;
   overflow: auto;
+  white-space: pre; /* keep each line of code on one line; scroll sideways for long ones */
   font-size: 11px;
-  line-height: 20px;
+  line-height: 18px;
+}
+
+.copy {
+  margin-top: 8px;
+  border-radius: 6px;
+  background: var(--coral);
+  padding: 4px 12px;
+  font-size: 13px;
+  color: #fff;
 }
