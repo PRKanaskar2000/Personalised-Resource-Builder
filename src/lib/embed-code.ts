@@ -1,5 +1,6 @@
 import { FIELD_BY_PATH } from "./field-registry";
 import { templateFields } from "./personalisation";
+import { sliderStyleAttribute, type SliderNav, type SliderStyle } from "./slider-style";
 import type { DesignDocument, FunraisinLookup } from "./types";
 
 export const EMBED_PLATFORMS = [
@@ -60,14 +61,15 @@ if (!is_array($rbOrg)) $rbOrg = array();`,
 };`,
 };
 
-/** Every dynamic field the design uses, each listed once, in layer order */
+/** Every dynamic field the design uses (in its layers and its conditional logic), each listed once */
 export function usedFields(design: DesignDocument): string[] {
   const paths = design.layers.flatMap((layer) => {
     if (layer.type === "dynamic-text") return templateFields(layer.template);
     if (layer.type === "dynamic-image" || layer.type === "progress-bar") return [layer.field];
     return [];
   });
-  return [...new Set(paths)];
+  const ruleFields = design.show?.enabled ? design.show.rules.map((rule) => rule.field).filter(Boolean) : [];
+  return [...new Set([...paths, ...ruleFields])];
 }
 
 /** Custom field names used by the design: ["walking_reason", "walking_support"] */
@@ -101,6 +103,43 @@ function fetchedFields(path: string): string[] {
   return FIELD_BY_PATH.get(path)?.derivedFrom ?? [path];
 }
 
+// The Funraisin PHP that puts the member's values in $resourceValues: only the fields the designs use.
+// The member's id and name are always sent, so each download can be listed against the person.
+function funraisinValues(designs: DesignDocument[]): string {
+  const fields = [...new Set([...MEMBER_FIELDS, ...designs.flatMap(usedFields).flatMap(fetchedFields)])];
+  const needed = new Set(fields.flatMap(funraisinNeeds));
+  const lookups = (Object.keys(FUNRAISIN_LOOKUPS) as FunraisinLookup[])
+    .filter((lookup) => needed.has(lookup))
+    .map((lookup) => FUNRAISIN_LOOKUPS[lookup]);
+  // A field Funraisin has no value for is simply left out (it shows nothing on the page)
+  const lines = fields.flatMap((path) => {
+    const value = funraisinValue(path);
+    return value ? [`  "${path}" => ${value},`] : [];
+  });
+  return `<?php
+${[FUNRAISIN_MEMBER, ...lookups].join("\n")}
+$resourceValues = [
+${lines.join("\n")}
+];
+?>`;
+}
+
+// JSON_PARTIAL_OUTPUT_ON_ERROR: if one value still cannot be encoded, the others are sent anyway
+const FUNRAISIN_VALUES_ATTRIBUTE = `data-values="<?= htmlspecialchars(json_encode($resourceValues, JSON_PARTIAL_OUTPUT_ON_ERROR), ENT_QUOTES) ?>"`;
+
+// The embed for one post or a slider: `target` is the div's own attributes
+function embedBlock(platform: EmbedPlatform, target: string, designs: DesignDocument[], origin: string, sampleFundraiserId: string) {
+  const script = `<script src="${origin}/embed.js"></script>`;
+  if (platform === "funraisin") {
+    return `${funraisinValues(designs)}
+<div ${target} ${FUNRAISIN_VALUES_ATTRIBUTE}></div>
+${script}`;
+  }
+  // Raisely: its own variables will be added later. For now it shows one fundraiser by id.
+  return `<div ${target} data-fundraiser="${sampleFundraiserId}"></div>
+${script}`;
+}
+
 /** The code to paste into a fundraising page so it shows this resource */
 export function embedCode(
   platform: EmbedPlatform,
@@ -109,33 +148,28 @@ export function embedCode(
   origin: string,
   sampleFundraiserId: string,
 ): string {
-  const script = `<script src="${origin}/embed.js"></script>`;
+  return embedBlock(platform, `data-resource="${resourceId}"`, [design], origin, sampleFundraiserId);
+}
 
-  if (platform === "funraisin") {
-    // The member's id and name are always sent, so each download can be listed against the person
-    const fields = [...new Set([...MEMBER_FIELDS, ...usedFields(design).flatMap(fetchedFields)])];
-    const needed = new Set(fields.flatMap(funraisinNeeds));
-    const lookups = (Object.keys(FUNRAISIN_LOOKUPS) as FunraisinLookup[])
-      .filter((lookup) => needed.has(lookup))
-      .map((lookup) => FUNRAISIN_LOOKUPS[lookup]);
-    // A field Funraisin has no value for is simply left out (it shows nothing on the page)
-    const lines = fields.flatMap((path) => {
-      const value = funraisinValue(path);
-      return value ? [`  "${path}" => ${value},`] : [];
-    });
-
-    // JSON_PARTIAL_OUTPUT_ON_ERROR: if one value still cannot be encoded, the others are sent anyway
-    return `<?php
-${[FUNRAISIN_MEMBER, ...lookups].join("\n")}
-$resourceValues = [
-${lines.join("\n")}
-];
-?>
-<div data-resource="${resourceId}" data-values="<?= htmlspecialchars(json_encode($resourceValues, JSON_PARTIAL_OUTPUT_ON_ERROR), ENT_QUOTES) ?>"></div>
-${script}`;
-  }
-
-  // Raisely: its own variables will be added later. For now it shows one fundraiser by id.
-  return `<div data-resource="${resourceId}" data-fundraiser="${sampleFundraiserId}"></div>
-${script}`;
+/**
+ * The code for a slider of several posts. `columns` posts are shown side by side (fewer on phones).
+ * `nav` says which controls it has (arrows, dots or both) and `style` how they look.
+ * The values are read once, for every field any of the posts needs.
+ */
+export function sliderEmbedCode(
+  platform: EmbedPlatform,
+  resources: { id: string; design: DesignDocument }[],
+  columns: number,
+  nav: SliderNav,
+  style: SliderStyle,
+  origin: string,
+  sampleFundraiserId: string,
+): string {
+  const css = sliderStyleAttribute(style);
+  const target =
+    `data-slider="${resources.map((resource) => resource.id).join(",")}" data-columns="${columns}"` +
+    (nav === "both" ? "" : ` data-nav="${nav}"`) +
+    (style.arrowIcon && nav !== "dots" ? ` data-arrow-icon="${style.arrowIcon}"` : "") +
+    (css ? ` style="${css}"` : "");
+  return embedBlock(platform, target, resources.map((resource) => resource.design), origin, sampleFundraiserId);
 }

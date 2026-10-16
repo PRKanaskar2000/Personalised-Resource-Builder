@@ -332,30 +332,90 @@ async function deleteEventFiles(eventId: string) {
   if (paths.length) await supabase.storage.from(UPLOADS_BUCKET).remove(paths);
 }
 
-// ---- Downloads: one row each time someone downloads a resource ----
+// ---- Downloads and views ----
+// downloads: one row each time someone downloads a post
+// views:     one row each time a post is shown on a fundraising page
+// The views table and the device / IP / user agent columns come from supabase/update-2026-10.sql.
+// Until that has been run, views count as 0 and downloads are saved without those details,
+// so fundraising pages keep working either way.
+const notCreatedYet = (error: { message: string } | null) => !!error && /schema cache|does not exist/i.test(error.message);
+
+// Supabase sends at most 1000 rows per request; this asks page by page until it has them all
+async function allRows(page: (from: number, to: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>) {
+  const rows: any[] = [];
+  for (let from = 0; ; from += 1000) {
+    const batch = unwrap(await page(from, from + 999));
+    rows.push(...batch);
+    if (batch.length < 1000) return rows;
+  }
+}
+
+const toDownload = (row: any): DownloadRecord => ({
+  resourceId: row.resource_id,
+  url: row.url,
+  format: row.format,
+  at: row.created_at,
+  memberId: row.member_id ?? undefined,
+  memberName: row.member_name ?? undefined,
+  device: row.device ?? undefined,
+  ip: row.ip ?? undefined,
+  userAgent: row.user_agent ?? undefined,
+});
+
 export async function listDownloads(resourceId: string): Promise<DownloadRecord[]> {
-  const rows = unwrap(await supabase.from("downloads").select("*").eq("resource_id", resourceId).order("created_at"));
-  return rows.map((row: any) => ({
-    resourceId: row.resource_id,
-    url: row.url,
-    format: row.format,
-    at: row.created_at,
-    memberId: row.member_id ?? undefined,
-    memberName: row.member_name ?? undefined,
-  }));
+  const rows = await allRows((from, to) =>
+    supabase.from("downloads").select("*").eq("resource_id", resourceId).order("created_at").range(from, to),
+  );
+  return rows.map(toDownload);
+}
+
+/** Every download of every post in an event, newest first */
+export async function listEventDownloads(eventId: string): Promise<DownloadRecord[]> {
+  const ids = (await listResources(eventId)).map((resource) => resource.id);
+  if (ids.length === 0) return [];
+  const rows = await allRows((from, to) =>
+    supabase.from("downloads").select("*").in("resource_id", ids).order("created_at", { ascending: false }).range(from, to),
+  );
+  return rows.map(toDownload);
 }
 
 export async function addDownload(download: DownloadRecord) {
-  unwrap(
-    await supabase
-      .from("downloads")
-      .insert({
-        resource_id: download.resourceId,
-        url: download.url,
-        format: download.format,
-        member_id: download.memberId ?? null,
-        member_name: download.memberName ?? null,
-      })
-      .select("id"),
+  const row = {
+    resource_id: download.resourceId,
+    url: download.url,
+    format: download.format,
+    member_id: download.memberId ?? null,
+    member_name: download.memberName ?? null,
+  };
+  const details = { device: download.device ?? null, ip: download.ip ?? null, user_agent: download.userAgent ?? null };
+  const { error } = await supabase.from("downloads").insert({ ...row, ...details });
+  if (notCreatedYet(error)) unwrap(await supabase.from("downloads").insert(row).select("id"));
+  else if (error) throw new Error(error.message);
+}
+
+/** Count one view of a post on a fundraising page. A failure here never stops the post from showing. */
+export async function addView(view: { resourceId: string; url: string | null; memberId?: string; device: string }) {
+  const { error } = await supabase.from("views").insert({
+    resource_id: view.resourceId,
+    url: view.url,
+    member_id: view.memberId ?? null,
+    device: view.device,
+  });
+  if (error && !notCreatedYet(error)) console.error("Could not count a view:", error.message);
+}
+
+/** Views and downloads of each post: { "resource_abc": { views: 12, downloads: 5 } } */
+export async function resourceStats(resourceIds: string[]): Promise<Record<string, { views: number; downloads: number }>> {
+  const count = async (table: "views" | "downloads", resourceId: string) => {
+    const { count, error } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("resource_id", resourceId);
+    if (error && table === "downloads") throw new Error(error.message);
+    return count ?? 0; // no views table yet = 0 views
+  };
+  const entries = await Promise.all(
+    resourceIds.map(async (id) => [id, { views: await count("views", id), downloads: await count("downloads", id) }] as const),
   );
+  return Object.fromEntries(entries);
 }

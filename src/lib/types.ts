@@ -20,6 +20,10 @@ export interface TextStyle {
   letterSpacing: number;
   /** Letter case shown, whatever case the text or value was typed in. Missing = as typed */
   textTransform?: LetterCase;
+  /** Make the text smaller when it is too long for its box (e.g. a 15-word team name) */
+  autoFit?: boolean;
+  /** With autoFit: the text never gets smaller than this, in pixels */
+  minFontSize?: number;
 }
 
 export type LetterCase = "none" | "uppercase" | "lowercase" | "capitalize";
@@ -126,6 +130,51 @@ export interface DesignDocument {
   version: 1;
   canvas: CanvasConfig;
   layers: Layer[];
+  /** Conditional logic: when this post is shown on a fundraising page. Missing or off = always */
+  show?: ShowRules;
+  /** How the Download button under the post looks. Missing or off = the page's own CSS decides */
+  button?: ButtonStyle;
+}
+
+/**
+ * Conditional logic of a post, e.g. "show only when the member has a team".
+ * `match`: "all" = every rule must be true, "any" = one true rule is enough.
+ */
+export interface ShowRules {
+  enabled: boolean;
+  match: "all" | "any";
+  rules: ShowRule[];
+}
+
+/** One rule: a field, how to compare it, and (for comparisons) the value to compare with */
+export interface ShowRule {
+  field: string;
+  operator: RuleOperator;
+  value?: string;
+}
+
+/** filled = has a value; empty = no value (or 0); gt/gte/lt/lte = more/at least/less/at most; eq/neq = equal/not equal */
+export type RuleOperator = "filled" | "empty" | "gt" | "gte" | "lt" | "lte" | "eq" | "neq";
+
+/** The look of the Download button under a post on a fundraising page */
+export interface ButtonStyle {
+  /** Off: the button has no styles of its own and the page's CSS (class PR_resources_Dbtn) decides */
+  enabled: boolean;
+  text: string;
+  /** "" = the page's own font */
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  color: string;
+  background: string;
+  borderWidth: number;
+  borderColor: string;
+  radius: number;
+  paddingX: number;
+  paddingY: number;
+  /** auto = as wide as its text, full = the whole width of the post, fixed = `width` pixels */
+  widthMode: "auto" | "full" | "fixed";
+  width: number;
 }
 
 /** A company that logs in. It owns events, and can only ever see its own. */
@@ -175,6 +224,12 @@ export interface DownloadRecord {
   /** Who downloaded it, when the page told us */
   memberId?: string;
   memberName?: string;
+  /** Mobile, Tablet or Desktop, worked out from the browser's user agent */
+  device?: string;
+  /** The visitor's IP address */
+  ip?: string;
+  /** The browser's own description of itself */
+  userAgent?: string;
 }
 
 export interface FundraisingIndividual {

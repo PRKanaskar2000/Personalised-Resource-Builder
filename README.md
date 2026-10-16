@@ -26,6 +26,7 @@ Open [http://localhost:3000](http://localhost:3000) and log in.
    ```
 
 2. In Supabase, open **SQL Editor**, paste `supabase/schema.sql` and run it. It creates the tables.
+   A database made before October 2026 also needs `supabase/update-2026-10.sql` (views, and device / IP of downloads).
 
 `.env.local` is never uploaded to Git. Keep the service_role key secret: it has full access to the database.
 
@@ -47,7 +48,13 @@ the finished image of a resource, and reporting a download.
 - **Dynamic fields:** write `I am {{activity.type}} for {{relationship.supporting}}`. Custom fields are written
   `{{custom.field_name}}`.
 - **Download:** PNG, JPG, JPEG or PDF.
-- **Embed:** copy the Funraisin (or Raisely) embed code from the editor. Downloads are counted per page and member.
+- **Embed:** copy the Funraisin (or Raisely) embed code from the editor, or with **Copy code** on the event page.
+  Views and downloads are counted per post, page and member (with device, IP address and user agent).
+- **Conditional logic:** show a post only to members it fits, e.g. only when the team name has a value.
+- **Auto-fit text:** long values get a smaller font so they stay in their box. Test with Short / Long text and **Preview**.
+- **Download button:** style it in the editor, or leave it to the page's CSS (class `PR_resources_Dbtn`).
+- **Slider:** **Slider embed code** on the event page puts several posts in one slider, 1 to 4 side by side.
+- **Export:** views and downloads per post, or every download, as a CSV sheet from the event page.
 
 ## How the code is organised
 
@@ -72,7 +79,11 @@ the finished image of a resource, and reporting a download.
 | `src/lib/personalisation.ts` | Fills `{{fields}}` with a fundraiser's values |
 | `src/lib/render/` | Turns a design into the finished image (same layout as the editor) |
 | `src/lib/connectors/` | Where preview data comes from (one dummy fundraiser for now) |
-| `src/lib/store.ts` | Reads and writes clients, events, resources, images and downloads in Supabase |
+| `src/lib/store.ts` | Reads and writes clients, events, resources, images, downloads and views in Supabase |
+| `src/lib/rules.ts` | Conditional logic: when a post is shown |
+| `src/lib/text-fit.ts` | Auto-fit: how much to shrink a long text |
+| `src/lib/button-style.ts` | The look of the Download button |
+| `src/components/SliderBuilder.tsx` | The Slider embed code pop-up on the event page |
 
 ## Embed
 

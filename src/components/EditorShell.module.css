@@ -6,6 +6,15 @@
   height: 100vh;
   overflow: hidden;
   grid-template-columns: 280px 1fr 320px;
+  /* The toolbar runs across the canvas and the inspector; both start below it */
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "left toolbar toolbar"
+    "left main right";
+}
+
+.toolbar {
+  grid-area: toolbar;
 }
 
 .sidebar {
@@ -15,10 +24,12 @@
 }
 
 .left {
+  grid-area: left;
   border-right: 1px solid var(--mist);
 }
 
 .right {
+  grid-area: right;
   border-left: 1px solid var(--mist);
 }
 
@@ -94,6 +105,7 @@
 
 /* ---- Middle: toolbar + canvas ---- */
 .main {
+  grid-area: main;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -172,10 +184,6 @@
 }
 
 /* ---- Right: inspector ---- */
-.hint {
-  margin-top: 16px;
-}
-
 .inspector {
   margin-top: 16px;
   display: flex;
@@ -503,4 +511,161 @@
   padding: 4px 12px;
   font-size: 13px;
   color: #fff;
+}
+
+/* ---- Conditional logic and Download button panels ---- */
+.panel {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+}
+
+/* A checkbox with its text beside it */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Two buttons side by side, the chosen one filled in */
+.toggle {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--pine);
+  border-radius: 9999px;
+}
+
+.toggle button {
+  flex: 1;
+  padding: 6px 10px;
+}
+
+.toggle .toggleOn {
+  background: var(--pine);
+  color: var(--paper);
+}
+
+/* One rule: the field on top, then the condition, value and remove button */
+.rule {
+  border-radius: 8px;
+  background: var(--mist);
+  padding: 8px;
+}
+
+.ruleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ruleRow .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ruleRemove {
+  margin-top: 4px;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 16px;
+  color: var(--coral);
+}
+
+.ruleShown {
+  color: var(--pine);
+}
+
+.ruleHidden {
+  color: var(--coral);
+}
+
+/* The sample button stays at the top of the panel while its settings are scrolled */
+.buttonPreview {
+  position: sticky;
+  top: -20px;
+  z-index: 1;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(26, 25, 21, 0.12);
+}
+
+/* ---- Preview pop-up: the post on a plain white page, with the test values beside it ---- */
+.previewLayout {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.previewPage {
+  display: flex;
+  flex: 1 1 400px;
+  justify-content: center;
+  border-radius: 12px;
+  background: #fff;
+  padding: 24px;
+}
+
+.previewFields {
+  display: flex;
+  flex: 0 1 280px;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 14px;
+}
+
+.previewHint {
+  color: var(--moss);
+}
+
+/* Short / Medium / Long */
+.lengths {
+  margin-top: 6px;
+  display: flex;
+  gap: 4px;
+}
+
+.lengths button {
+  flex: 1;
+  border-radius: 4px;
+  background: var(--mist);
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.lengths .lengthOn {
+  background: var(--pine);
+  color: var(--paper);
+}
+
+.previewButtonRow {
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Long browser descriptions wrap in a narrow column */
+.userAgent {
+  min-width: 260px;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+/* "This text is too long for its box" in the Preview */
+.warning {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 8px;
+  background: rgba(196, 92, 62, 0.12);
+  padding: 10px;
+  color: var(--coral);
 }

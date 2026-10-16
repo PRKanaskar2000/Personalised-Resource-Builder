@@ -154,6 +154,7 @@ export function ResourceCanvas({
           return (
             <div
               key={layer.id}
+              data-layer={layer.id}
               onPointerDown={(event) => startDrag(event, layer)}
               className={`${interactive && !layer.locked ? styles.movable : ""} ${selected ? styles.selected : ""}`}
               style={{ ...boxStyle(layer), pointerEvents: interactive ? "auto" : "none" }}
@@ -161,7 +162,7 @@ export function ResourceCanvas({
               {/* The layout styles come from layer-styles.ts, which the export uses too */}
               {(layer.type === "text" || layer.type === "dynamic-text") && text && (
                 <div style={TEXT_BOX_STYLE}>
-                  <div style={textStyle(layer.style)}>
+                  <div style={textStyle(layer.style)} data-text>
                     {segments?.map((segment, index) => (
                       <span key={index} style={segmentStyle(segment.style)}>
                         {segment.text}

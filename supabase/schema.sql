@@ -4,7 +4,7 @@
 --
 -- How the data is organised:
 --   client  ->  events (folders)  ->  resources, uploaded images, settings
---                                     resource -> downloads
+--                                     resource -> downloads, views
 
 -- A client: a company that logs in. Passwords are stored only as a scrambled hash.
 create table if not exists clients (
@@ -53,6 +53,19 @@ create table if not exists downloads (
   format      text not null,
   member_id   text,
   member_name text,
+  device      text,   -- Mobile, Tablet or Desktop
+  ip          text,
+  user_agent  text,
+  created_at  timestamptz not null default now()
+);
+
+-- One row each time a post is shown on a fundraising page.
+create table if not exists views (
+  id          bigint generated always as identity primary key,
+  resource_id text not null references resources(id) on delete cascade,
+  url         text,
+  member_id   text,
+  device      text,
   created_at  timestamptz not null default now()
 );
 
@@ -61,6 +74,7 @@ create index if not exists events_client_id_idx      on events (client_id);
 create index if not exists resources_event_id_idx    on resources (event_id);
 create index if not exists assets_event_id_idx       on assets (event_id);
 create index if not exists downloads_resource_id_idx on downloads (resource_id);
+create index if not exists views_resource_id_idx     on views (resource_id);
 
 -- Security: lock every table. With row level security on and no policies, the public keys
 -- cannot read or write anything. Only this app's server, which holds the service_role key, can.
@@ -70,3 +84,4 @@ alter table events    enable row level security;
 alter table resources enable row level security;
 alter table assets    enable row level security;
 alter table downloads enable row level security;
+alter table views     enable row level security;

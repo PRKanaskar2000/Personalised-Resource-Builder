@@ -31,7 +31,7 @@ export function defaultDesign(): DesignDocument {
         width: 900,
         height: 130,
         template: "{{individual.firstName}}",
-        style: { ...DEFAULT_TEXT_STYLE, fontFamily: "Open Sans", fontSize: 104, fontWeight: 500, color: "#FFFFFF" },
+        style: { ...DEFAULT_TEXT_STYLE, fontFamily: "Open Sans", fontSize: 104, fontWeight: 500, color: "#FFFFFF", autoFit: true },
       },
       {
         ...base,
@@ -80,7 +80,8 @@ export function newLayer(type: Layer["type"], name?: string): Layer {
         ...base,
         type,
         template: "{{individual.fullName}}",
-        style: { ...DEFAULT_TEXT_STYLE, color: "#1A1915" },
+        // Long names get a smaller font so they stay in the box
+        style: { ...DEFAULT_TEXT_STYLE, color: "#1A1915", autoFit: true },
       };
     case "dynamic-image":
       return {

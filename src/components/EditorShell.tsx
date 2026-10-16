@@ -3,21 +3,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ResourceCanvas, type LayerBox } from "@/components/ResourceCanvas";
+import { buttonCss, buttonOf } from "@/lib/button-style";
 import { cloneDesign, newLayer } from "@/lib/design";
 import { DOWNLOAD_FORMATS, downloadSvgAs, type DownloadFormat } from "@/lib/download";
 import { EMBED_PLATFORMS, embedCode, usedCustomFields, type EmbedPlatform } from "@/lib/embed-code";
 import { IMAGE_FIELDS, TEXT_FIELDS } from "@/lib/field-registry";
 import { FONTS, WEIGHT_NAMES, nearestWeight, weightsOf } from "@/lib/fonts";
+import { NO_RULES, RULE_OPERATORS, isPercentField, passesRules, ruleFields } from "@/lib/rules";
+import { testExample, textFieldsOf, withTestValues, type TestLength } from "@/lib/test-values";
 import { addRange, shiftRanges, type RangeStyle } from "@/lib/text-ranges";
 import type {
   AppSettings,
   AssetRecord,
+  ButtonStyle,
   DesignDocument,
   DownloadRecord,
   Layer,
   LetterCase,
   NormalisedFundraiser,
   ResourceRecord,
+  ShowRule,
+  ShowRules,
 } from "@/lib/types";
 import styles from "./EditorShell.module.css";
 
@@ -58,6 +64,18 @@ const PRESETS = [
   { label: "A4 poster", width: 1240, height: 1754 },
 ];
 
+// Names of the dynamic fields, for the Preview: "team.name" -> "Team name"
+const FIELD_LABELS = new Map(TEXT_FIELDS.map((field) => [field.path, field.label]));
+
+// A new rule in the conditional logic: "Team name has a value"
+const NEW_RULE: ShowRule = { field: "team.name", operator: "filled" };
+
+const TEST_LENGTHS: { value: TestLength; label: string }[] = [
+  { value: "short", label: "Short" },
+  { value: "medium", label: "Medium" },
+  { value: "long", label: "Long" },
+];
+
 // What an image picked in the image library is for
 type ImageUse = "layer" | "background" | "replace";
 
@@ -93,6 +111,9 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
   const imageDialog = useRef<HTMLDialogElement>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const [imageUse, setImageUse] = useState<ImageUse>("layer");
+  // Preview: test values typed for each name on the post, e.g. a long team name with a short first name
+  const [testValues, setTestValues] = useState<Record<string, string>>({});
+  const previewDialog = useRef<HTMLDialogElement>(null);
   // Always holds the newest design, for code that runs after a drag ends
   const designRef = useRef(design);
   designRef.current = design;
@@ -125,8 +146,119 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
     const placeholders = Object.fromEntries(usedCustomFields(design).map((field) => [field, titleCase(field)]));
     return { ...sample, custom: { ...placeholders, ...sample.custom } };
   }, [sample, design]);
+  // The values the Preview shows: the sample, with the test values typed there
+  const previewPerson = useMemo(() => fundraiser && withTestValues(fundraiser, testValues), [fundraiser, testValues]);
+  const previewFields = textFieldsOf(design);
+  // Names shown in the Preview: "team.name" -> "Team name", custom variables by their name in the settings
+  const fieldLabel = (path: string) =>
+    FIELD_LABELS.get(path) ??
+    customFields.find((field) => `custom.${field.key}` === path)?.label ??
+    path.replace(/^custom\./, "");
+
+  // Texts that are too long for their box in the Preview (only texts without auto-fit can be)
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [overflowing, setOverflowing] = useState<string[]>([]);
+
+  // A text that no longer fits its box (bigger font, longer words) makes the box taller, so all of it shows.
+  // The box grows evenly up and down, so the text stays where it was. With auto-fit on, the text shrinks instead.
+  const [fontsReady, setFontsReady] = useState(false);
+  useEffect(() => {
+    void document.fonts.ready.then(() => setFontsReady(true));
+  }, []);
+  useEffect(() => {
+    const area = stage.current;
+    if (!area) return;
+    const grow: Record<string, number> = {};
+    for (const layer of design.layers) {
+      if (!("style" in layer) || layer.style.autoFit || layer.hidden) continue;
+      const text = area.querySelector<HTMLElement>(`[data-layer="${layer.id}"] [data-text]`);
+      const needed = text ? Math.ceil(text.offsetHeight + (layer.borderWidth ?? 0) * 2) : 0;
+      if (needed > layer.height) grow[layer.id] = needed;
+    }
+    if (Object.keys(grow).length === 0) return;
+    setDesign((current) => ({
+      ...current,
+      layers: current.layers.map((layer) =>
+        grow[layer.id]
+          ? { ...layer, y: Math.round(layer.y - (grow[layer.id] - layer.height) / 2), height: grow[layer.id] }
+          : layer,
+      ),
+    }));
+  }, [design, fontsReady]);
+
+  useEffect(() => {
+    const page = previewDialog.current;
+    if (!previewOpen || !page) return;
+    const tooLong = design.layers.filter((layer) => {
+      const box = page.querySelector<HTMLElement>(`[data-layer="${layer.id}"]`);
+      const text = box?.querySelector<HTMLElement>("[data-text]");
+      return !!box && !!text && text.offsetHeight > box.offsetHeight + 1;
+    });
+    setOverflowing(tooLong.map((layer) => layer.id));
+  }, [previewOpen, previewPerson, design, fontsReady]);
+
+  function turnOnAutoFit(id: string) {
+    commit({
+      ...design,
+      layers: design.layers.map((layer) =>
+        layer.id === id && "style" in layer ? ({ ...layer, style: { ...layer.style, autoFit: true } } as Layer) : layer,
+      ),
+    });
+  }
 
   const embed = embedCode(platform, resource.id, design, origin, fundraiserId);
+
+  // Conditional logic and the Download button's look; both are saved with the design
+  const show = design.show ?? NO_RULES;
+  const button = buttonOf(design);
+  const shownForSample = passesRules(show, fundraiser);
+  const shownInPreview = passesRules(show, previewPerson);
+  // The fields a rule can check, grouped for the menu: Member, Donations, Team…
+  const ruleGroups = useMemo(() => {
+    const groups = new Map<string, { path: string; label: string }[]>();
+    for (const field of ruleFields(settings)) groups.set(field.category, [...(groups.get(field.category) ?? []), field]);
+    return groups;
+  }, [settings]);
+
+  function changeShow(patch: Partial<ShowRules>) {
+    commit({ ...design, show: { ...show, ...patch } });
+  }
+
+  function changeRule(index: number, patch: Partial<ShowRule>) {
+    changeShow({ rules: show.rules.map((rule, position) => (position === index ? { ...rule, ...patch } : rule)) });
+  }
+
+  function changeButton(patch: Partial<ButtonStyle>) {
+    commit({ ...design, button: { ...button, ...patch } });
+  }
+
+  // Small inputs for the Download button settings
+  const buttonNumber = (label: string, key: "fontSize" | "radius" | "borderWidth" | "paddingX" | "paddingY" | "width", min = 0) => (
+    <label className={styles.field}>
+      {label}
+      <input
+        type="number"
+        min={min}
+        className={styles.input}
+        value={button[key]}
+        onChange={(event) => changeButton({ [key]: Math.max(min, Number(event.target.value)) })}
+      />
+    </label>
+  );
+  const buttonColour = (label: string, key: "color" | "background" | "borderColor") => (
+    <label className={styles.field}>
+      {label}
+      <input
+        type="color"
+        className={styles.colourBlock}
+        value={button[key]}
+        onChange={(event) => changeButton({ [key]: event.target.value })}
+      />
+    </label>
+  );
+
+  // The preview shows the post at most 520px wide or tall
+  const previewScale = Math.min(1, 520 / design.canvas.width, 520 / design.canvas.height);
 
   function commit(next: DesignDocument) {
     const cloned = cloneDesign(next);
@@ -435,8 +567,7 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
         </div>
       </aside>
 
-      <main className={styles.main}>
-        <header className={styles.toolbar}>
+      <header className={styles.toolbar}>
           <select
             value={`${design.canvas.width}x${design.canvas.height}`}
             onChange={(event) => {
@@ -483,6 +614,15 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
             </button>
           </div>
           <div className={styles.toolbarActions}>
+            <button
+              onClick={() => {
+                previewDialog.current?.showModal();
+                setPreviewOpen(true);
+              }}
+              className="btn btn-small btn-outline"
+            >
+              Preview
+            </button>
             {/* Choosing a format downloads it; the menu then goes back to "Download" */}
             <select
               value=""
@@ -504,6 +644,8 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
             </button>
           </div>
         </header>
+
+      <main className={styles.main}>
         <div className={styles.stage} ref={stage}>
           <ResourceCanvas
             design={design}
@@ -522,7 +664,6 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
 
       <aside className={`${styles.sidebar} ${styles.right}`}>
         <p className="eyebrow">Inspector</p>
-        {!selected && <p className={`muted ${styles.hint}`}>Select a layer to edit styles and dynamic fields.</p>}
         {selected && (
           <div className={styles.inspector}>
             <label className={styles.field}>
@@ -728,6 +869,48 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
                     <option value="center">Center</option>
                     <option value="right">Right</option>
                   </select>
+                </label>
+                <div className={styles.sizeRow}>
+                  {/* Space between lines, as a multiple of the font size: 1.2 = normal */}
+                  <label className={styles.field}>
+                    Line height
+                    <input
+                      type="number"
+                      min={0.5}
+                      max={3}
+                      step={0.05}
+                      className={styles.input}
+                      value={selected.style.lineHeight}
+                      onChange={(event) =>
+                        updateSelected({ style: { ...selected.style, lineHeight: Number(event.target.value) || 1.2 } })
+                      }
+                    />
+                  </label>
+                  {selected.style.autoFit && (
+                    <label className={styles.field}>
+                      Smallest size
+                      <input
+                        type="number"
+                        min={4}
+                        className={styles.input}
+                        value={selected.style.minFontSize ?? 16}
+                        onChange={(event) =>
+                          updateSelected({
+                            style: { ...selected.style, minFontSize: Math.max(4, Number(event.target.value)) },
+                          })
+                        }
+                      />
+                    </label>
+                  )}
+                </div>
+                {/* Auto-fit: a long value (a 15-word team name) gets a smaller font so it stays inside the box */}
+                <label className={styles.check}>
+                  <input
+                    type="checkbox"
+                    checked={!!selected.style.autoFit}
+                    onChange={(event) => updateSelected({ style: { ...selected.style, autoFit: event.target.checked } })}
+                  />
+                  Auto-fit: make long text smaller to fit its box
                 </label>
               </>
             )}
@@ -961,6 +1144,185 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
             </button>
           </div>
         )}
+        {/* Conditional logic: when this post is shown on a fundraising page */}
+        <div className={styles.panel}>
+          <p className="eyebrow">Conditional logic</p>
+          <p className={styles.help}>Show this post only to members it fits, e.g. the team post only to team members.</p>
+          <div className={styles.toggle}>
+            <button className={!show.enabled ? styles.toggleOn : ""} onClick={() => changeShow({ enabled: false })}>
+              No, always show
+            </button>
+            <button
+              className={show.enabled ? styles.toggleOn : ""}
+              onClick={() => changeShow({ enabled: true, rules: show.rules.length ? show.rules : [NEW_RULE] })}
+            >
+              Yes
+            </button>
+          </div>
+          {show.enabled && (
+            <>
+              <label className={styles.field}>
+                Show this post when
+                <select
+                  className={styles.input}
+                  value={show.match}
+                  onChange={(event) => changeShow({ match: event.target.value as ShowRules["match"] })}
+                >
+                  <option value="all">all of these are true</option>
+                  <option value="any">any one of these is true</option>
+                </select>
+              </label>
+              {show.rules.map((rule, index) => {
+                const operator = RULE_OPERATORS.find((item) => item.value === rule.operator);
+                const known = [...ruleGroups.values()].some((fields) => fields.some((field) => field.path === rule.field));
+                return (
+                  <div key={index} className={styles.rule}>
+                    <select
+                      className={styles.input}
+                      aria-label="Field"
+                      value={rule.field}
+                      onChange={(event) => changeRule(index, { field: event.target.value })}
+                    >
+                      {!known && <option value={rule.field}>{rule.field}</option>}
+                      {[...ruleGroups.entries()].map(([category, fields]) => (
+                        <optgroup key={category} label={category}>
+                          {fields.map((field) => (
+                            <option key={field.path} value={field.path}>
+                              {field.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <div className={styles.ruleRow}>
+                      <select
+                        className={styles.input}
+                        aria-label="Condition"
+                        value={rule.operator}
+                        onChange={(event) => changeRule(index, { operator: event.target.value as ShowRule["operator"] })}
+                      >
+                        {RULE_OPERATORS.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                      {operator?.needsValue && (
+                        <input
+                          className={styles.input}
+                          aria-label="Value"
+                          placeholder={isPercentField(rule.field) ? "e.g. 50 (%)" : "e.g. 0"}
+                          value={rule.value ?? ""}
+                          onChange={(event) => changeRule(index, { value: event.target.value })}
+                        />
+                      )}
+                      <button
+                        className={styles.ruleRemove}
+                        aria-label="Remove this rule"
+                        title="Remove this rule"
+                        onClick={() => changeShow({ rules: show.rules.filter((_, position) => position !== index) })}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              <button className={styles.smallButton} onClick={() => changeShow({ rules: [...show.rules, NEW_RULE] })}>
+                + Add rule
+              </button>
+              <p className={shownForSample ? styles.ruleShown : styles.ruleHidden}>
+                With the sample values this post is {shownForSample ? "shown" : "hidden"}.
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* The Download button under the post on a fundraising page */}
+        <div className={styles.panel}>
+          <p className="eyebrow">Download button</p>
+          <label className={styles.check}>
+            <input type="checkbox" checked={button.enabled} onChange={(event) => changeButton({ enabled: event.target.checked })} />
+            Style the button here
+          </label>
+          {button.enabled && (
+            <div className={styles.inspector}>
+              {/* Stays in view while the settings below are scrolled */}
+              <div className={styles.buttonPreview}>
+                <button type="button" style={buttonCss(button)}>
+                  {button.text || "Download"}
+                </button>
+              </div>
+              <label className={styles.field}>
+                Text
+                <input className={styles.input} value={button.text} onChange={(event) => changeButton({ text: event.target.value })} />
+              </label>
+              <div className={styles.sizeRow}>
+                <label className={styles.field}>
+                  Font
+                  <select
+                    className={styles.input}
+                    value={button.fontFamily}
+                    onChange={(event) => changeButton({ fontFamily: event.target.value })}
+                  >
+                    <option value="">Page font</option>
+                    {FONTS.map((font) => (
+                      <option key={font.family} value={font.family}>
+                        {font.family}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={styles.field}>
+                  Weight
+                  <select
+                    className={styles.input}
+                    value={button.fontWeight}
+                    onChange={(event) => changeButton({ fontWeight: Number(event.target.value) })}
+                  >
+                    {Object.entries(WEIGHT_NAMES).map(([weight, label]) => (
+                      <option key={weight} value={weight}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className={styles.sizeRow}>
+                {buttonNumber("Font size", "fontSize", 8)}
+                {buttonNumber("Corner radius", "radius")}
+              </div>
+              <div className={styles.sizeRow}>
+                {buttonColour("Text colour", "color")}
+                {buttonColour("Background", "background")}
+              </div>
+              <div className={styles.sizeRow}>
+                {buttonNumber("Border (px)", "borderWidth")}
+                {buttonColour("Border colour", "borderColor")}
+              </div>
+              <div className={styles.sizeRow}>
+                {buttonNumber("Padding top/bottom", "paddingY")}
+                {buttonNumber("Padding sides", "paddingX")}
+              </div>
+              <div className={styles.sizeRow}>
+                <label className={styles.field}>
+                  Width
+                  <select
+                    className={styles.input}
+                    value={button.widthMode}
+                    onChange={(event) => changeButton({ widthMode: event.target.value as ButtonStyle["widthMode"] })}
+                  >
+                    <option value="auto">Fit the text</option>
+                    <option value="full">Full width</option>
+                    <option value="fixed">Fixed (px)</option>
+                  </select>
+                </label>
+                {button.widthMode === "fixed" && buttonNumber("Width (px)", "width", 40)}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className={styles.embed}>
           <div className={styles.embedHeader}>
             <p className={styles.embedTitle}>Embed code</p>
@@ -1029,6 +1391,9 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
                   <th>Name</th>
                   <th>Format</th>
                   <th>Downloaded from</th>
+                  <th>Device</th>
+                  <th>IP address</th>
+                  <th>User agent</th>
                 </tr>
               </thead>
               <tbody>
@@ -1043,10 +1408,87 @@ export function EditorShell({ resource, fundraisers, assets, settings }: Props) 
                         {row.url}
                       </a>
                     </td>
+                    <td>{row.device ?? "—"}</td>
+                    <td>{row.ip ?? "—"}</td>
+                    <td className={styles.userAgent}>{row.userAgent ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </dialog>
+
+        {/* Preview: the post as a fundraising page shows it, with its Download button.
+            Each name on the post can be tried short, medium or long, one at a time. */}
+        <dialog ref={previewDialog} className={styles.dialog} onClose={() => setPreviewOpen(false)}>
+          <div className={styles.dialogHeader}>
+            <p className={`display ${styles.dialogTitle}`}>Preview</p>
+            <button className="btn btn-small btn-outline" onClick={() => previewDialog.current?.close()}>
+              Close
+            </button>
+          </div>
+          <div className={styles.previewLayout}>
+            <div className={styles.previewPage}>
+              {shownInPreview ? (
+                <div>
+                  <ResourceCanvas design={design} fundraiser={previewPerson} scale={previewScale} />
+                  <div className={styles.previewButtonRow}>
+                    <button type="button" className="PR_resources_Dbtn" style={button.enabled ? buttonCss(button) : undefined}>
+                      {(button.enabled && button.text) || "Download"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className={styles.ruleHidden}>The conditional logic hides this post for these values.</p>
+              )}
+            </div>
+            <div className={styles.previewFields}>
+              <p className={styles.previewHint}>Try each name short, medium or long, or type your own.</p>
+              {/* A text without auto-fit that runs out of its box with these values */}
+              {design.layers
+                .filter((layer) => overflowing.includes(layer.id))
+                .map((layer) => (
+                  <div key={layer.id} className={styles.warning}>
+                    &ldquo;{layer.name}&rdquo; is too long for its box with these values.
+                    <button className="btn btn-small btn-dark" onClick={() => turnOnAutoFit(layer.id)}>
+                      Turn on auto-fit
+                    </button>
+                  </div>
+                ))}
+              {previewFields.length === 0 && <p className="muted">This post has no names or texts from the page.</p>}
+              {previewFields.map((path) => {
+                const label = fieldLabel(path);
+                return (
+                  <div key={path} className={styles.previewField}>
+                    <label className={styles.field}>
+                      {label}
+                      <input
+                        className={styles.input}
+                        value={testValues[path] ?? ""}
+                        placeholder="Sample value"
+                        onChange={(event) => setTestValues((values) => ({ ...values, [path]: event.target.value }))}
+                      />
+                    </label>
+                    <div className={styles.lengths}>
+                      {TEST_LENGTHS.map((item) => (
+                        <button
+                          key={item.value}
+                          className={testValues[path] === testExample(path, item.value) ? styles.lengthOn : ""}
+                          onClick={() => setTestValues((values) => ({ ...values, [path]: testExample(path, item.value) }))}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              {Object.values(testValues).some(Boolean) && (
+                <button className={styles.textButton} onClick={() => setTestValues({})}>
+                  Back to the sample values
+                </button>
+              )}
+            </div>
           </div>
         </dialog>
 

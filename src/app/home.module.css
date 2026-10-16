@@ -98,3 +98,39 @@
   font-size: 14px;
   color: var(--moss);
 }
+
+/* New resource and Slider embed code, side by side */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.exports {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The post's name, with its views and downloads beside it */
+.titleRow {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.titleRow .cardTitle {
+  margin-top: 0;
+}
+
+.stats {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--pine);
+}

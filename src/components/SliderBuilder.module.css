@@ -1,0 +1,332 @@
+.dialog {
+  width: min(960px, 92vw);
+  max-height: 88vh;
+  border: 0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-panel);
+  color: var(--ink);
+}
+
+.dialog::backdrop {
+  background: rgba(26, 25, 21, 0.45);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.step {
+  margin: 20px 0 8px;
+  font-weight: 600;
+}
+
+/* ---- 1. Single / Double / Triple / Four ---- */
+.layouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+  border: 2px solid var(--mist);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.layoutOn {
+  border-color: var(--coral);
+}
+
+/* Little boxes showing how many posts sit side by side */
+.layoutIcon {
+  display: flex;
+  gap: 3px;
+  width: 72px;
+  height: 36px;
+}
+
+.layoutIcon span {
+  flex: 1;
+  border-radius: 3px;
+  background: var(--moss);
+}
+
+/* ---- 2. The posts to choose from ---- */
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.post {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 170px;
+  border: 2px solid var(--mist);
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.postOn {
+  border-color: var(--coral);
+}
+
+.post input {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+}
+
+/* The post's place in the slider: 1, 2, 3… */
+.number {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-size: 13px;
+}
+
+.postName {
+  font-weight: 600;
+}
+
+.order {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+.order li span {
+  display: inline-block;
+  min-width: 200px;
+}
+
+.order button {
+  margin-left: 6px;
+  width: 28px;
+  border-radius: 4px;
+  background: var(--mist);
+}
+
+.order button:disabled {
+  opacity: 0.4;
+}
+
+/* ---- 3. The code ---- */
+.codeHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.select {
+  margin-top: 12px;
+  border: 1px solid var(--mist);
+  border-radius: 6px;
+  background: #fff;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.code {
+  margin-bottom: 12px;
+  max-height: 240px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--pine);
+  padding: 12px;
+  color: var(--paper);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---- 2. Arrows and dots ---- */
+.navOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.navOptions .layout {
+  width: auto;
+  padding: 10px 16px;
+}
+
+/* Settings on the left (40%), the preview on the right (60%) */
+.lookRow {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  align-items: start;
+  gap: 40px;
+}
+
+@media (max-width: 720px) {
+  .lookRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 10px 16px;
+  font-size: 14px;
+}
+
+.setting {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting input,
+.setting select {
+  border: 1px solid var(--mist);
+  border-radius: 6px;
+  background: #fff;
+  padding: 4px 8px;
+}
+
+.setting input[type="color"] {
+  height: 32px;
+  padding: 2px;
+}
+
+.reset {
+  justify-self: start;
+  font-size: 14px;
+  color: var(--coral);
+}
+
+/* The preview of the controls uses the same CSS variables as the real slider */
+.navPreview {
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: inset 0 0 0 1px var(--mist);
+}
+
+.navPreviewRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fakePost {
+  flex: 1;
+  height: 90px;
+  border-radius: 6px;
+  background: var(--mist);
+}
+
+.arrow {
+  display: flex;
+  width: var(--pr-arrow-size);
+  height: var(--pr-arrow-size);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pr-arrow-radius);
+  background: var(--pr-arrow-bg);
+  color: var(--pr-arrow-color);
+  font-size: calc(var(--pr-arrow-size) * 0.6);
+  line-height: 1;
+}
+
+.dots {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dots span {
+  width: var(--pr-dot-size);
+  height: var(--pr-dot-size);
+  border-radius: 50%;
+  background: var(--pr-dot);
+}
+
+.dots .dotActive {
+  background: var(--pr-dot-active);
+}
+
+/* Arrow icon: the client's images as small buttons, plus "no image" and "upload" */
+.iconPicker {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.icon {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid var(--mist);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 20px;
+}
+
+.icon img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.iconOn {
+  border-color: var(--coral);
+}
+
+/* The icon in the preview arrows, at the chosen size */
+.arrow img {
+  width: var(--pr-arrow-icon-size);
+  height: var(--pr-arrow-icon-size);
+  object-fit: contain;
+}
+
+.flipped {
+  transform: scaleX(-1);
+}

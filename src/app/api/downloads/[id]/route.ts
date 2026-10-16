@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { getConnector } from "@/lib/connectors";
 import { DOWNLOAD_FORMATS } from "@/lib/download";
 import { addDownload, getResource, listDownloads } from "@/lib/store";
+import { pageAddress, visitorOf } from "@/lib/visitor";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -39,7 +40,8 @@ export async function GET(_: Request, { params }: Context) {
   });
 }
 
-// POST /api/downloads/<resource id> with { url, format, memberId?, memberName? }: record one download.
+// POST /api/downloads/<resource id> with { url, format, memberId?, memberName? }: record one download,
+// with the visitor's device, IP address and user agent.
 // Open to everyone, because it is called from fundraising pages by people who are not logged in here.
 export async function POST(request: Request, { params }: Context) {
   const { id } = await params;
@@ -53,14 +55,8 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   // Keep only the page address (no ?query or #hash, which can hold personal details)
-  let url: string;
-  try {
-    const parsed = new URL(String(body.url));
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("Not a web address");
-    url = (parsed.origin + parsed.pathname).slice(0, 500);
-  } catch {
-    return NextResponse.json({ error: "url must be a web address" }, { status: 400, headers: CORS });
-  }
+  const url = pageAddress(body.url);
+  if (!url) return NextResponse.json({ error: "url must be a web address" }, { status: 400, headers: CORS });
   const format = DOWNLOAD_FORMATS.find((item) => item === body.format);
   if (!format) return NextResponse.json({ error: "Unknown format" }, { status: 400, headers: CORS });
 
@@ -71,6 +67,7 @@ export async function POST(request: Request, { params }: Context) {
     memberName = (await getConnector().getFundraiser(memberId))?.individual.fullName;
   }
 
-  await addDownload({ resourceId: id, url, format, at: new Date().toISOString(), memberId, memberName });
+  // Device, IP address and user agent of the browser that downloaded it
+  await addDownload({ resourceId: id, url, format, at: new Date().toISOString(), memberId, memberName, ...visitorOf(request) });
   return NextResponse.json({ ok: true }, { headers: CORS });
 }

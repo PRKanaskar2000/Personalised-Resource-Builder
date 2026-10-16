@@ -1,5 +1,6 @@
 import { FIELD_BY_PATH } from "../field-registry";
 import { getFieldValue, isEmptyValue, resolveFields } from "../personalisation";
+import { fitScale } from "../text-fit";
 import { textSegments, type TextSegment } from "../text-ranges";
 import type { DesignDocument, Layer, NormalisedFundraiser } from "../types";
 
@@ -12,6 +13,20 @@ export interface ResolvedLayer {
   segments?: TextSegment[];
   imageSrc?: string;
   progress?: number;
+}
+
+// Auto-fit: a text that is too long for its box gets a smaller font size (see text-fit.ts).
+// The layer and its styled words are returned with the smaller sizes; everything else stays the same.
+function fitted(layer: Layer, segments: TextSegment[]): { layer: Layer; segments: TextSegment[] } {
+  const scale = fitScale(layer, segments);
+  if (scale === 1 || !("style" in layer)) return { layer, segments };
+  const shrink = (size: number) => Math.round(size * scale * 10) / 10;
+  return {
+    layer: { ...layer, style: { ...layer.style, fontSize: shrink(layer.style.fontSize) } },
+    segments: segments.map((segment) =>
+      segment.style.fontSize ? { ...segment, style: { ...segment.style, fontSize: shrink(segment.style.fontSize) } } : segment,
+    ),
+  };
 }
 
 export function resolveLayers(design: DesignDocument, fundraiser?: NormalisedFundraiser | null): ResolvedLayer[] {
@@ -27,7 +42,7 @@ export function resolveLayers(design: DesignDocument, fundraiser?: NormalisedFun
       }));
       const text = segments.map((segment) => segment.text).join("");
       const empty = !text || text.includes("{{");
-      return { layer, visible: !(layer.hideIfEmpty && empty), text, segments };
+      return { ...fitted(layer, segments), visible: !(layer.hideIfEmpty && empty), text };
     }
     if (layer.type === "dynamic-image") {
       const value = fundraiser ? getFieldValue(fundraiser, layer.field) : layer.fallback;
@@ -42,7 +57,7 @@ export function resolveLayers(design: DesignDocument, fundraiser?: NormalisedFun
       return { layer, visible: true, progress };
     }
     if (layer.type === "text") {
-      return { layer, visible: true, text: layer.text, segments: textSegments(layer.text, layer.ranges) };
+      return { ...fitted(layer, textSegments(layer.text, layer.ranges)), visible: true, text: layer.text };
     }
     if (layer.type === "image") return { layer, visible: true, imageSrc: layer.source };
     return { layer, visible: true };
